@@ -1,10 +1,10 @@
-from threading import RLock
+import sys
 from typing import Optional, Tuple
 
-try:
-    from typing_extensions import Literal
-except ImportError:  # pragma: no cover
-    from typing import Literal  # type: ignore
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal  # pragma: no cover
 
 
 from ._loop import loop_last
@@ -84,16 +84,15 @@ class LiveRender:
     ) -> RenderResult:
 
         renderable = self.renderable
-        _Segment = Segment
         style = console.get_style(self.style)
         lines = console.render_lines(renderable, options, style=style, pad=False)
-        shape = _Segment.get_shape(lines)
+        shape = Segment.get_shape(lines)
 
         _, height = shape
         if height > options.size.height:
             if self.vertical_overflow == "crop":
                 lines = lines[: options.size.height]
-                shape = _Segment.get_shape(lines)
+                shape = Segment.get_shape(lines)
             elif self.vertical_overflow == "ellipsis":
                 lines = lines[: (options.size.height - 1)]
                 overflow_text = Text(
@@ -104,10 +103,11 @@ class LiveRender:
                     style="live.ellipsis",
                 )
                 lines.append(list(console.render(overflow_text)))
-                shape = _Segment.get_shape(lines)
+                shape = Segment.get_shape(lines)
         self._shape = shape
 
+        new_line = Segment.line()
         for last, line in loop_last(lines):
             yield from line
             if not last:
-                yield _Segment.line()
+                yield new_line

@@ -1,10 +1,11 @@
+import sys
 from itertools import chain
-from typing import Iterable, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, Optional
 
-try:
-    from typing_extensions import Literal
-except ImportError:  # pragma: no cover
-    from typing import Literal  # type: ignore
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal  # pragma: no cover
 
 from .constrain import Constrain
 from .jupyter import JupyterMixin
@@ -12,13 +13,11 @@ from .measure import Measurement
 from .segment import Segment
 from .style import StyleType
 
-
 if TYPE_CHECKING:
-    from .console import Console, ConsoleOptions, RenderResult, RenderableType
+    from .console import Console, ConsoleOptions, RenderableType, RenderResult
 
 AlignMethod = Literal["left", "center", "right"]
 VerticalAlignMethod = Literal["top", "middle", "bottom"]
-AlignValues = AlignMethod  # TODO: deprecate AlignValues
 
 
 class Align(JupyterMixin):
@@ -196,7 +195,7 @@ class Align(JupyterMixin):
             else Segment("\n")
         )
 
-        def blank_lines(count) -> Iterable[Segment]:
+        def blank_lines(count: int) -> Iterable[Segment]:
             if count > 0:
                 for _ in range(count):
                     yield blank_line
@@ -268,7 +267,7 @@ class VerticalCenter(JupyterMixin):
         bottom_space = height - top_space - len(lines)
         blank_line = Segment(f"{' ' * width}", style)
 
-        def blank_lines(count) -> Iterable[Segment]:
+        def blank_lines(count: int) -> Iterable[Segment]:
             for _ in range(count):
                 yield blank_line
                 yield new_line
@@ -289,7 +288,7 @@ class VerticalCenter(JupyterMixin):
 
 
 if __name__ == "__main__":  # pragma: no cover
-    from rich.console import Console, RenderGroup
+    from rich.console import Console, Group
     from rich.highlighter import ReprHighlighter
     from rich.panel import Panel
 
@@ -297,14 +296,14 @@ if __name__ == "__main__":  # pragma: no cover
     console = Console()
 
     panel = Panel(
-        RenderGroup(
+        Group(
             Align.left(highlighter("align='left'")),
             Align.center(highlighter("align='center'")),
             Align.right(highlighter("align='right'")),
         ),
         width=60,
         style="on dark_blue",
-        title="Algin",
+        title="Align",
     )
 
     console.print(

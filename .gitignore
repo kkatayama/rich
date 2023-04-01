@@ -4,6 +4,7 @@ Table_with_Emojis_and_Spinners.py
 .pytype
 .DS_Store
 .vscode
+.idea/
 mypy_report
 docs/build
 docs/source/_build
@@ -114,3 +115,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# airspeed velocity
+benchmarks/env/
+benchmarks/html/

@@ -1,4 +1,4 @@
-from typing import cast, List, Optional, TYPE_CHECKING
+from typing import cast, List, Optional, TYPE_CHECKING, Union
 
 from ._spinners import SPINNERS
 from .measure import Measurement
@@ -11,30 +11,33 @@ if TYPE_CHECKING:
 
 
 class Spinner:
+    """A spinner animation.
+
+    Args:
+        name (str): Name of spinner (run python -m rich.spinner).
+        text (RenderableType, optional): A renderable to display at the right of the spinner (str or Text typically). Defaults to "".
+        style (StyleType, optional): Style for spinner animation. Defaults to None.
+        speed (float, optional): Speed factor for animation. Defaults to 1.0.
+
+    Raises:
+        KeyError: If name isn't one of the supported spinner animations.
+    """
+
     def __init__(
         self,
         name: str,
         text: "RenderableType" = "",
         *,
         style: Optional["StyleType"] = None,
-        speed=1.0,
+        speed: float = 1.0,
     ) -> None:
-        """A spinner animation.
-
-        Args:
-            name (str): Name of spinner (run python -m rich.spinner).
-            text (RenderableType, optional): A renderable to display at the right of the spinner (str or Text typically). Defaults to "".
-            style (StyleType, optional): Style for spinner animation. Defaults to None.
-            speed (float, optional): Speed factor for animation. Defaults to 1.0.
-
-        Raises:
-            KeyError: If name isn't one of the supported spinner animations.
-        """
         try:
             spinner = SPINNERS[name]
         except KeyError:
             raise KeyError(f"no spinner called {name!r}")
-        self.text = text
+        self.text: "Union[RenderableType, Text]" = (
+            Text.from_markup(text) if isinstance(text, str) else text
+        )
         self.frames = cast(List[str], spinner["frames"])[:]
         self.interval = cast(float, spinner["interval"])
         self.start_time: Optional[float] = None
@@ -103,7 +106,7 @@ class Spinner:
             speed (float, optional): Speed factor for animation. Defaults to None.
         """
         if text:
-            self.text = text
+            self.text = Text.from_markup(text) if isinstance(text, str) else text
         if style:
             self.style = style
         if speed:

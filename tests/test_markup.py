@@ -1,7 +1,8 @@
 import pytest
 
 from rich.console import Console
-from rich.markup import escape, MarkupError, _parse, render, Tag, RE_TAGS
+from rich.errors import MarkupError
+from rich.markup import RE_TAGS, Tag, _parse, escape, render
 from rich.text import Span
 
 
@@ -21,6 +22,9 @@ def test_re_match():
     assert RE_TAGS.match("[color(1)]")
     assert RE_TAGS.match("[#ff00ff]")
     assert RE_TAGS.match("[/]")
+    assert RE_TAGS.match("[@]")
+    assert RE_TAGS.match("[@foo]")
+    assert RE_TAGS.match("[@foo=bar]")
 
 
 def test_escape():
@@ -31,6 +35,13 @@ def test_escape():
     # Not tags (escape not required)
     assert escape("[5]") == "[5]"
     assert escape("\\[5]") == "\\[5]"
+
+    # Test @ escape
+    assert escape("[@foo]") == "\\[@foo]"
+    assert escape("[@]") == "\\[@]"
+
+    # https://github.com/Textualize/rich/issues/2187
+    assert escape("[nil, [nil]]") == r"[nil, \[nil]]"
 
 
 def test_render_escape():
@@ -105,6 +116,12 @@ def test_render_overlap():
     ]
 
 
+def test_adjoint():
+    result = render("[red][blue]B[/blue]R[/red]")
+    print(repr(result))
+    assert result.spans == [Span(0, 2, "red"), Span(0, 1, "blue")]
+
+
 def test_render_close():
     result = render("[bold]X[/]Y")
     assert str(result) == "XY"
@@ -124,6 +141,11 @@ def test_markup_error():
         assert render("foo[/bar]")
     with pytest.raises(MarkupError):
         assert render("[foo]hello[/bar]")
+
+
+def test_markup_escape():
+    result = str(render("[dim white][url=[/]"))
+    assert result == "[url="
 
 
 def test_escape_escape():
@@ -149,3 +171,37 @@ def test_escape_escape():
 
     result = render(r"\\\\")
     assert str(result) == r"\\\\"
+
+
+def test_events():
+    result = render("[@click]Hello[/@click] [@click='view.toggle', 'left']World[/]")
+    assert str(result) == "Hello World"
+
+
+def test_events_broken():
+    with pytest.raises(MarkupError):
+        render("[@click=sdfwer(sfs)]foo[/]")
+
+    with pytest.raises(MarkupError):
+        render("[@click='view.toggle]foo[/]")
+
+
+def test_render_meta():
+    console = Console()
+    text = render("foo[@click=close]bar[/]baz")
+    assert text.get_style_at_offset(console, 3).meta == {"@click": ("close", ())}
+
+    text = render("foo[@click=close()]bar[/]baz")
+    assert text.get_style_at_offset(console, 3).meta == {"@click": ("close", ())}
+
+    text = render("foo[@click=close('dialog')]bar[/]baz")
+    assert text.get_style_at_offset(console, 3).meta == {
+        "@click": ("close", ("dialog",))
+    }
+    text = render("foo[@click=close('dialog', 3)]bar[/]baz")
+    assert text.get_style_at_offset(console, 3).meta == {
+        "@click": ("close", ("dialog", 3))
+    }
+
+    text = render("foo[@click=(1, 2, 3)]bar[/]baz")
+    assert text.get_style_at_offset(console, 3).meta == {"@click": (1, 2, 3)}

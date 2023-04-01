@@ -1,9 +1,11 @@
 import io
-from rich.console import Console
-from rich.measure import Measurement
-from rich.panel import Panel
 
 import pytest
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.segment import Segment
+from rich.style import Style
 
 tests = [
     Panel("Hello, World", padding=0),
@@ -12,6 +14,7 @@ tests = [
     Panel("Hello, World", width=8, padding=0),
     Panel(Panel("Hello, World", padding=0), padding=0),
     Panel("Hello, World", title="FOO", padding=0),
+    Panel("Hello, World", subtitle="FOO", padding=0),
 ]
 
 expected = [
@@ -21,6 +24,7 @@ expected = [
     "╭──────╮\n│Hello,│\n│World │\n╰──────╯\n",
     "╭────────────────────────────────────────────────╮\n│╭──────────────────────────────────────────────╮│\n││Hello, World                                  ││\n│╰──────────────────────────────────────────────╯│\n╰────────────────────────────────────────────────╯\n",
     "╭───────────────────── FOO ──────────────────────╮\n│Hello, World                                    │\n╰────────────────────────────────────────────────╯\n",
+    "╭────────────────────────────────────────────────╮\n│Hello, World                                    │\n╰───────────────────── FOO ──────────────────────╯\n",
 ]
 
 
@@ -49,6 +53,50 @@ def test_fixed_width():
     min_width, max_width = panel.__rich_measure__(console, console.options)
     assert min_width == 20
     assert max_width == 20
+
+
+def test_render_size():
+    console = Console(width=63, height=46, legacy_windows=False)
+    options = console.options.update_dimensions(80, 4)
+    lines = console.render_lines(Panel("foo", title="Hello"), options=options)
+    print(repr(lines))
+    expected = [
+        [
+            Segment("╭─", Style()),
+            Segment("──────────────────────────────────", Style()),
+            Segment(" Hello ", Style()),
+            Segment("───────────────────────────────────", Style()),
+            Segment("─╮", Style()),
+        ],
+        [
+            Segment("│", Style()),
+            Segment(" ", Style()),
+            Segment("foo"),
+            Segment(
+                "                                                                         ",
+                Style(),
+            ),
+            Segment(" ", Style()),
+            Segment("│", Style()),
+        ],
+        [
+            Segment("│", Style()),
+            Segment(" ", Style()),
+            Segment(
+                "                                                                            ",
+                Style(),
+            ),
+            Segment(" ", Style()),
+            Segment("│", Style()),
+        ],
+        [
+            Segment(
+                "╰──────────────────────────────────────────────────────────────────────────────╯",
+                Style(),
+            )
+        ],
+    ]
+    assert lines == expected
 
 
 if __name__ == "__main__":
